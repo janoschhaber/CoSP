@@ -102,12 +102,15 @@ class CorpusReader:
         display_progress (boolean) -- display an overwriting progress bar if True (default: True)
         """
         i = 1
-        for filename in iglob(os.path.join(self.src_dirname, "sw*", "*.csv")):
-            # Optional progress bar:
-            if display_progress:
-                sys.stderr.write("\r") ; sys.stderr.write("transcript %s" % i) ; sys.stderr.flush(); i += 1
-            # Yield the Transcript instance:
-            yield Transcript(filename, self.metadata)
+        for dirpath, dirnames, filenames in os.walk(self.src_dirname):
+            for filename in filenames:
+                if filename.startswith('sw') and filename.endswith('.csv'):
+                    print filename
+                    # Optional progress bar:
+                    if display_progress:
+                        sys.stderr.write("\r") ; sys.stderr.write("transcript %s" % i) ; sys.stderr.flush(); i += 1
+                    # Yield the Transcript instance:
+                    yield Transcript(filename, self.metadata)
         # Closing blank line for the progress bar:
         if display_progress: sys.stderr.write("\n") 
                     
