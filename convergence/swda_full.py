@@ -30,6 +30,8 @@ import dateutil.parser
 from glob import iglob
 from nltk.tree import Tree
 from nltk.stem import WordNetLemmatizer
+from contextlib import contextmanager
+import subprocess
 
 ######################################################################
 
@@ -101,16 +103,23 @@ class CorpusReader:
         Argument: 
         display_progress (boolean) -- display an overwriting progress bar if True (default: True)
         """
+        
         i = 1
-        for filename in iglob(os.path.join(self.src_dirname, "*.csv")):
-            # Optional progress bar:
-            if display_progress:
-                sys.stderr.write("\r") ; sys.stderr.write("transcript %s" % i) ; sys.stderr.flush(); i += 1
-            if re.search('metadata', filename):
-                # don't create transcript from metadata
-                continue
-            # Yield the Transcript instance:
-            yield Transcript(filename, self.metadata)
+        for dirpath, dirnames, filenames in os.walk(self.src_dirname):
+            path = os.path.split(dirpath)[-1]
+            filenames = [f for f in filenames if not f[0] == '.']
+            for filename in filenames:
+                if filename.startswith('sw') and filename.endswith('.csv'):
+                    # Optional progress bar:
+                    if display_progress:
+                        sys.stderr.write("\r") ; sys.stderr.write("transcript %s" % i) ; sys.stderr.flush(); i += 1
+                    if re.search('metadata', filename):
+                        # don't create transcript from metadata
+                        continue
+                    # Yield the Transcript instance:
+                    with self._cd(os.path.join(self.src_dirname, path)):
+                        yield Transcript(filename, self.metadata)
+
         # Closing blank line for the progress bar:
         if display_progress: sys.stderr.write("\n") 
                     
@@ -131,6 +140,15 @@ class CorpusReader:
                 yield utt
         # Closing blank line for the progress bar:
         if display_progress: sys.stderr.write("\n") 
+
+    @contextmanager
+    def _cd(self, newdir):
+        prevdir = os.getcwd()
+        os.chdir(os.path.expanduser(newdir))
+        try:
+            yield
+        finally:
+            os.chdir(prevdir)
 
 ######################################################################
 
